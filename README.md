@@ -1,4 +1,7 @@
 # Once
+[![Android Weekly](http://img.shields.io/badge/Android%20Weekly-%23164-33B5E5.svg?style=flat)](http://androidweekly.net/issues/issue-164)
+[![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-Once-brightgreen.svg?style=flat)](http://android-arsenal.com/details/1/2206)
+
 A small Android library to manage one-off operations.
 
 ----
@@ -17,6 +20,9 @@ First things first, you'll need to initialise Once on start up. In your `Applica
 ```java
 Once.initialise(this);
 ```
+
+
+### Checking if something has been _done_
 
 Now you're ready to go. Say you wanted to navigate to a 'WhatsNew' Activity every time your app is upgraded:
 
@@ -42,7 +48,32 @@ Your app operations can also be rate-limited by time spans. So for example if yo
 ```java
 if (!Once.beenDone(TimeUnit.HOURS, 1, phonedHome) { ... }
 ```
- 
+
+
+### Marking something as _to do_
+
+Say one part of your app triggers functionality elsewhere. For example you might have some advanced feature onboarding to show on the main activity, but you only want to show it once the user has seen the basic functionality.
+
+```java
+
+// in the basic functionality activity
+Once.toDo(Once.THIS_APP_INSTALL, "show feature onboarding");
+...
+
+// back in the home activity
+if (Once.needToDo(showAppTour)) {
+    // do some operations
+    ...
+
+    // after task has been done, mark it as done as normal
+    Once.markDone(showAppTour);
+}
+```
+
+When a task is marked done it is removed from the set of tasks 'to do' so subsequent `needToDo(tag)` calls will return `false`. To stop the tag from being added back to your todo list each time the user looks at the basic functionality task, we've added a scope to the todo call: `toDo(Once.THIS_APP_INSTALL, tag)`. You could also use the `THIS_APP_VERSION` scope for todo's which should happen once per app version, or leave off scope complete for tasks which should be repeated every time.
+
+
+
 To de-noise your code a bit more you can also static-import the `Once` methods, so usage looks a bit cleaner
 
 ```java
@@ -65,7 +96,7 @@ Add a library dependency to your app module's `build.gradle`:
 
 ```
 dependencies {
-    compile 'com.jonathanfinerty.once:once:0.3.2'
+    compile 'com.jonathanfinerty.once:once:0.4.2'
 }
 ```
 
@@ -74,6 +105,12 @@ You'll need to have `jcenter()` in your list of repositories
 ## Example
 
 Have a look at the example app in `once-example/` for more simple usage.
+
+## Contributing
+
+`Once` was made in '20%' time at [Huddle](https://talentcommunity.huddle.com/), where its used to help build our [Android apps](https://play.google.com/store/apps/details?id=com.huddle.huddle). [Pete O'Grady](https://twitter.com/peteog) and [Paul Simmons](https://twitter.com/slamminsoup) also provided invaluable feedback.
+
+Pull requests and github issues are more than welcome and you can get in touch with me directly [@jonfinerty](https://twitter.com/jonfinerty).
 
 ## License
 
