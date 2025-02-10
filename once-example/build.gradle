@@ -1,26 +1,52 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 30
 
     defaultConfig {
         applicationId "jonathanfinerty.onceexample"
-        minSdkVersion 11
-        targetSdkVersion 22
+        minSdkVersion 14
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
     }
-    buildTypes {
+
+    if (!project.hasProperty('keyStoreLocation')) {
+        ext.keyStoreLocation = "null"
+        ext.keyStorePassword = "null"
+        ext.signingKeyAlias = "null"
+        ext.signingKeyPassword = "null"
+    }
+
+    signingConfigs {
         release {
+            storeFile file(keyStoreLocation)
+            storePassword keyStorePassword
+            keyAlias signingKeyAlias
+            keyPassword signingKeyPassword
+        }
+    }
+
+    lintOptions {
+        warningsAsErrors true
+    }
+
+    buildTypes {
+
+        debug {
             minifyEnabled false
+        }
+
+        release {
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:22.2.0'
-    compile 'com.jonathanfinerty.once:once:0.4.2'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation project(':once')
+    implementation 'androidx.appcompat:appcompat:1.3.0'
 }

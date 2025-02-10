@@ -2,51 +2,113 @@ package jonathanfinerty.once;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.annotation.NonNull;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 class PersistedMap {
 
-    private static final long KEY_NOT_FOUND_VALUE = -1;
-    private final SharedPreferences preferences;
-    private Map<String, Long> map = new ConcurrentHashMap<>();
+    private static final String DELIMITER = ",";
 
-    public PersistedMap(Context context, String mapName) {
-        preferences = context.getSharedPreferences(PersistedMap.class.getSimpleName() + mapName, Context.MODE_PRIVATE);
+    private final SharedPreferences preferences;
+    private final Map<String, List<Long>> map = new ConcurrentHashMap<>();
+
+    PersistedMap(Context context, String mapName) {
+        String preferencesName = "PersistedMap".concat(mapName);
+        preferences = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE);
         Map<String, ?> allPreferences = preferences.getAll();
 
         for (String key : allPreferences.keySet()) {
-            long value = preferences.getLong(key, KEY_NOT_FOUND_VALUE);
 
-            if (value != KEY_NOT_FOUND_VALUE) {
-                map.put(key, value);
+            List<Long> values;
+            try {
+                values = stringToList(preferences.getString(key, null));
+            } catch (ClassCastException exception) {
+                values = loadFromLegacyStorageFormat(key);
             }
+
+            map.put(key, values);
         }
     }
 
-    public Long get(String tag) {
-        return map.get(tag);
+    private List<Long> loadFromLegacyStorageFormat(String key) {
+        long value = preferences.getLong(key, -1);
+        List<Long> values = new ArrayList<>(1);
+        values.add(value);
+
+        preferences.edit().putString(key, listToString(values)).apply();
+
+        return values;
     }
 
-    public void put(String tag, long timeSeen) {
-        map.put(tag, timeSeen);
+    @NonNull
+    List<Long> get(String tag) {
+        List<Long> longs = map.get(tag);
+        if (longs == null) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(longs);
+    }
+
+    synchronized void put(String tag, long timeSeen) {
+        List<Long> lastSeenTimeStamps = map.get(tag);
+        if (lastSeenTimeStamps == null) {
+            lastSeenTimeStamps = new ArrayList<>(1);
+        }
+        lastSeenTimeStamps.add(timeSeen);
+
+        map.put(tag, lastSeenTimeStamps);
         SharedPreferences.Editor edit = preferences.edit();
-        edit.putLong(tag, timeSeen);
+        edit.putString(tag, listToString(lastSeenTimeStamps));
         edit.apply();
     }
 
-    public void remove(String tag) {
+    void remove(String tag) {
         map.remove(tag);
         SharedPreferences.Editor edit = preferences.edit();
         edit.remove(tag);
         edit.apply();
     }
 
-    public void clear() {
+    void clear() {
         map.clear();
         SharedPreferences.Editor edit = preferences.edit();
         edit.clear();
         edit.apply();
     }
+
+    private String listToString(List<Long> list) {
+        StringBuilder stringBuilder = new StringBuilder();
+        String loopDelimiter = "";
+
+        for (Long l : list) {
+            stringBuilder.append(loopDelimiter);
+            stringBuilder.append(l);
+
+            loopDelimiter = DELIMITER;
+        }
+
+        return stringBuilder.toString();
+    }
+
+    private List<Long> stringToList(String stringList) {
+        if (stringList == null || stringList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String[] strings = stringList.split(DELIMITER);
+        List<Long> list = new ArrayList<>(strings.length);
+
+        for (String stringLong : strings) {
+            list.add(Long.parseLong(stringLong));
+        }
+
+        return list;
+    }
+
+
 }
